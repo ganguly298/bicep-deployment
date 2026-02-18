@@ -1,12 +1,7 @@
-using '../main.bicep'  // ← Links to which template this is for
+using '../main.bicep'
 
-// Environment-specific parameters
 param environment = 'dev'
-param location = 'eastus'
-param projectName = 'secureapi'
-
-// Dev-specific configurations (small, cheap)
-param appServiceSku = 'B1'           // Basic tier
-param databaseSku = 'B_Standard_B1ms' // Burstable tier
-param enableBackup = false            // No backup in dev
-param enableHighAvailability = false  // Single instance
+param projectName = 'myapp'
+param appServicePlanSku = 'B1' // Cost-conscious for dev
+param pgAdminLogin = 'devadmin'
+param pgAdminPassword = 'SuperSecretPassword123!' // Recommend passing this via Azure DevOps/GitHub Actions variables
