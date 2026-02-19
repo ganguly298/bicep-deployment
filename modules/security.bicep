@@ -2,6 +2,9 @@ param location string
 param keyVaultName string
 param vnetId string
 param privateEndpointSubnetId string
+@secure()
+param dbAdminPassword string
+param backendAppPrincipalId string
 
 resource keyVault 'Microsoft.KeyVault/vaults@2023-02-01' = {
   name: keyVaultName
@@ -69,3 +72,28 @@ resource kvDnsZoneGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups
     ]
   }
 }
+// Store database password as a secret
+resource dbPasswordSecret 'Microsoft.KeyVault/vaults/secrets@2023-02-01' = {
+  parent: keyVault
+  name: 'db-admin-password'
+  properties: {
+    value: dbAdminPassword
+  }
+}
+
+// RBAC: Grant Backend App "Key Vault Secrets User" role
+var keyVaultSecretsUserRole = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4633458b-17de-408a-b874-0445c86b69e6')
+
+resource backendKvRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(keyVault.id, backendAppPrincipalId, keyVaultSecretsUserRole)
+  scope: keyVault
+  properties: {
+    roleDefinitionId: keyVaultSecretsUserRole
+    principalId: backendAppPrincipalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+output keyVaultId string = keyVault.id
+output keyVaultUri string = keyVault.properties.vaultUri
+output dbPasswordSecretUri string = dbPasswordSecret.properties.secretUri

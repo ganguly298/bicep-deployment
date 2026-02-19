@@ -44,15 +44,16 @@ graph TB
 
     Users -->|HTTPS| FrontendApp
     FrontendApp -->|Internal API Calls| BackendApp
-    BackendApp -->|Database Queries| PostgreSQL
-    FrontendApp -.->|Managed Identity| KVEndpoint
-    BackendApp -.->|Managed Identity| KVEndpoint
+    BackendApp -.->|1. Get DB Password<br/>Managed Identity| KVEndpoint
     KVEndpoint -->|Private Link| KeyVault
+    BackendApp -->|2. Connect with Password<br/>Database Queries| PostgreSQL
     DNSKv -.->|DNS Resolution| KVEndpoint
     DNSPostgres -.->|DNS Resolution| PostgreSQL
     FrontendApp -->|Telemetry| AppInsights
     BackendApp -->|Telemetry| AppInsights
     AppInsights -->|Logs & Metrics| LogAnalytics
+    
+    Note right of KeyVault: ⚠️ NOT YET IMPLEMENTED<br/>Backend should retrieve<br/>DB password from Key Vault
 
     style FrontendApp fill:#0078D4,color:#fff
     style BackendApp fill:#0078D4,color:#fff
@@ -65,24 +66,52 @@ graph TB
 
 ## Traffic Flow
 
-### 1. **User Request Flow**
+### 1. **User Request Flow (CURRENT)**
 ```
 [User Browser] 
     ↓ HTTPS (443)
 [Frontend App Service (Node.js)]
     ↓ Internal VNet Call
 [Backend App Service (.NET Core)]
-    ↓ Database Connection (5432)
+    ↓ Database Connection (5432) - password from deployment parameter
+[PostgreSQL Flexible Server]
+
+⚠️ Issue: Database password passed as deployment parameter, not from Key Vault
+```
+
+### 2. **CORRECT User Request Flow (SHOULD BE IMPLEMENTED)**
+```
+[User Browser] 
+    ↓ HTTPS (443)
+[Frontend App Service (Node.js)]
+    ↓ Internal VNet Call
+[Backend App Service (.NET Core)]
+    ↓ 1. Use Managed Identity to get DB password
+[Key Vault via Private Endpoint]
+    ↓ 2. Returns DB password
+[Backend App Service]
+    ↓ 3. Connect to database using password
 [PostgreSQL Flexible Server]
 ```
 
-### 2. **Secrets Access Flow**
+### 2. **Secrets Access Flow (Future Use)**
 ```
-[App Service (System Managed Identity)]
+⚠️ TO BE IMPLEMENTED:
+
+[Backend App Service (System Managed Identity)]
     ↓ Private Endpoint (10.0.4.0/24)
 [Key Vault Private Endpoint]
     ↓ Private Link
-[Azure Key Vault]
+[Azure Key Vault - reads "db-password" secret]
+    ↓ Returns password
+[Backend App Service]
+    ↓ Uses password to connect
+[PostgreSQL Database]
+
+Required Changes:
+1. Store database password as secret in Key Vault
+2. Grant Backend's Managed Identity "Key Vault Secrets User" role
+3. Update Backend app settings to reference Key Vault secret
 ```
 
 ### 3. **Monitoring & Telemetry Flow**

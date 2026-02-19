@@ -47,6 +47,23 @@ module monitoring 'modules/monitoring.bicep' = {
   }
 }
 
+module compute 'modules/compute.bicep' = {
+  name: 'compute-deployment'
+  params: {
+    location: location
+    appServicePlanName: aspName
+    sku: appServicePlanSku
+    frontendAppName: frontendAppName
+    backendAppName: backendAppName
+    frontendSubnetId: network.outputs.frontendSubnetId
+    backendSubnetId: network.outputs.backendSubnetId
+    appInsightsInstrumentationKey: monitoring.outputs.instrumentationKey
+    dbPasswordSecretUri: ''  // Will be updated after security module
+    dbServerName: dbServerName
+    dbAdminLogin: pgAdminLogin
+  }
+}
+
 module security 'modules/security.bicep' = {
   name: 'security-deployment'
   params: {
@@ -54,6 +71,8 @@ module security 'modules/security.bicep' = {
     keyVaultName: kvName
     vnetId: network.outputs.vnetId
     privateEndpointSubnetId: network.outputs.privateEndpointSubnetId
+    dbAdminPassword: pgAdminPassword
+    backendAppPrincipalId: compute.outputs.backendPrincipalId
   }
 }
 
@@ -69,8 +88,9 @@ module database 'modules/database.bicep' = {
   }
 }
 
-module compute 'modules/compute.bicep' = {
-  name: 'compute-deployment'
+// Update backend app settings with Key Vault secret URI
+module computeUpdate 'modules/compute.bicep' = {
+  name: 'compute-update-deployment'
   params: {
     location: location
     appServicePlanName: aspName
@@ -80,5 +100,8 @@ module compute 'modules/compute.bicep' = {
     frontendSubnetId: network.outputs.frontendSubnetId
     backendSubnetId: network.outputs.backendSubnetId
     appInsightsInstrumentationKey: monitoring.outputs.instrumentationKey
+    dbPasswordSecretUri: security.outputs.dbPasswordSecretUri
+    dbServerName: dbServerName
+    dbAdminLogin: pgAdminLogin
   }
 }

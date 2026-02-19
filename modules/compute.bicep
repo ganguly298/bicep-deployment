@@ -6,6 +6,9 @@ param backendAppName string
 param frontendSubnetId string
 param backendSubnetId string
 param appInsightsInstrumentationKey string
+param dbPasswordSecretUri string
+param dbServerName string
+param dbAdminLogin string
 
 resource asp 'Microsoft.Web/serverfarms@2022-09-01' = {
   name: appServicePlanName
@@ -57,7 +60,21 @@ resource backendApp 'Microsoft.Web/sites@2022-09-01' = {
           name: 'APPINSIGHTS_INSTRUMENTATIONKEY'
           value: appInsightsInstrumentationKey
         }
+        {
+          name: 'DB_HOST'
+          value: '${dbServerName}.postgres.database.azure.com'
+        }
+        {
+          name: 'DB_USER'
+          value: dbAdminLogin
+        }
+        {
+          name: 'DB_PASSWORD'
+          value: '@Microsoft.KeyVault(SecretUri=${dbPasswordSecretUri})'
+        }
       ]
     }
   }
 }
+
+output backendPrincipalId string = backendApp.identity.principalId
