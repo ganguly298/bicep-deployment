@@ -52,8 +52,6 @@ graph TB
     FrontendApp -->|Telemetry| AppInsights
     BackendApp -->|Telemetry| AppInsights
     AppInsights -->|Logs & Metrics| LogAnalytics
-    
-    Note right of KeyVault: ⚠️ NOT YET IMPLEMENTED<br/>Backend should retrieve<br/>DB password from Key Vault
 
     style FrontendApp fill:#0078D4,color:#fff
     style BackendApp fill:#0078D4,color:#fff
@@ -62,24 +60,13 @@ graph TB
     style AppInsights fill:#68217A,color:#fff
 ```
 
+**Note:** Backend now uses Managed Identity to retrieve database password from Key Vault via Private Endpoint.
+
 ---
 
 ## Traffic Flow
 
-### 1. **User Request Flow (CURRENT)**
-```
-[User Browser] 
-    ↓ HTTPS (443)
-[Frontend App Service (Node.js)]
-    ↓ Internal VNet Call
-[Backend App Service (.NET Core)]
-    ↓ Database Connection (5432) - password from deployment parameter
-[PostgreSQL Flexible Server]
-
-⚠️ Issue: Database password passed as deployment parameter, not from Key Vault
-```
-
-### 2. **CORRECT User Request Flow (SHOULD BE IMPLEMENTED)**
+### 1. **User Request Flow**
 ```
 [User Browser] 
     ↓ HTTPS (443)
@@ -94,24 +81,22 @@ graph TB
 [PostgreSQL Flexible Server]
 ```
 
-### 2. **Secrets Access Flow (Future Use)**
+### 2. **Secrets Access Flow**
 ```
-⚠️ TO BE IMPLEMENTED:
-
 [Backend App Service (System Managed Identity)]
     ↓ Private Endpoint (10.0.4.0/24)
 [Key Vault Private Endpoint]
     ↓ Private Link
-[Azure Key Vault - reads "db-password" secret]
+[Azure Key Vault - reads "db-admin-password" secret]
     ↓ Returns password
 [Backend App Service]
     ↓ Uses password to connect
 [PostgreSQL Database]
 
-Required Changes:
-1. Store database password as secret in Key Vault
-2. Grant Backend's Managed Identity "Key Vault Secrets User" role
-3. Update Backend app settings to reference Key Vault secret
+Implementation:
+✅ Database password stored as secret in Key Vault
+✅ Backend's Managed Identity has "Key Vault Secrets User" role
+✅ Backend app settings reference Key Vault secret
 ```
 
 ### 3. **Monitoring & Telemetry Flow**
