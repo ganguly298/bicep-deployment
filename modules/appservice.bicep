@@ -70,7 +70,7 @@ resource web 'Microsoft.Web/sites@2023-01-01' = {
           {
             name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
             value: appInsightsConnectionString
-          },
+          }
           {
             name: 'KeyVaultUri'
             value: keyVaultUri
@@ -82,7 +82,8 @@ resource web 'Microsoft.Web/sites@2023-01-01' = {
 
 // Regional VNet Integration via networkConfig child
 resource vnetConfig 'Microsoft.Web/sites/networkConfig@2022-09-01' = {
-  name: '${web.name}/virtualNetwork'
+  parent: web
+  name: 'virtualNetwork'
   properties: {
     subnetResourceId: appSubnetId
     swiftSupported: true
